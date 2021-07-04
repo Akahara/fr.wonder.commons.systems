@@ -295,5 +295,16 @@ public class ReflectUtils {
 			throw new IllegalArgumentException("Cannot instantiate the class", e);
 		}
 	}
+
+	/**
+	 * Used instead of {@link Enum#valueOf(Class, String)} because the {@code Class}
+	 * argument's value cannot be casted to an enum class type (we work with {@code Class<?>}
+	 * types and we cannot convert to {@code Class<T extends Enum<T>>}), this method
+	 * only exist to avoid suppress warnings annotations in the code.
+	 */
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	public static Object getEnumConstant(Class<?> enumType, String constantName) {
+		return Enum.valueOf((Class<Enum>) enumType, constantName);
+	}
 	
 }

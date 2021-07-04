@@ -142,4 +142,30 @@ public class FooBar {
 		
 	}
 	
+	public static enum EnumFoo {
+		
+		E1,
+		E2,
+		E3;
+		
+	}
+	
+	public static enum EnumBar {
+		
+		B1(1, 2f, "b1"),
+		B2(2, 4f, "b2"),
+		B3(3, 6f, "b3");
+		
+		int i;
+		float f;
+		String s;
+		
+		private EnumBar(int i, float f, String s) {
+			this.i = i;
+			this.f = f;
+			this.s = s;
+		}
+		
+	}
+	
 }
