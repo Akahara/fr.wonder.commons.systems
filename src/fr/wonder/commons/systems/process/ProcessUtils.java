@@ -1,10 +1,13 @@
 package fr.wonder.commons.systems.process;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import fr.wonder.commons.files.FilesUtils;
 import fr.wonder.commons.loggers.Logger;
+import fr.wonder.commons.utils.Assertions;
 
 public class ProcessUtils {
 	
@@ -88,6 +91,13 @@ public class ProcessUtils {
 		if((exitValue & 0x80) == 0 || sig > 16)
 			return null;
 		return SIGNALS[sig];
+	}
+	
+	public static void createLaunchBashScript(File file, String jarName) throws IOException {
+		Assertions.assertNonNull(jarName);
+		file.createNewFile();
+		file.setExecutable(true);
+		FilesUtils.write(file, "#!/bin/bash\n\njava -jar " + jarName + " $@");
 	}
 	
 }

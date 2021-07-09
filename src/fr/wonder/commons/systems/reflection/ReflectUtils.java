@@ -1,13 +1,14 @@
 package fr.wonder.commons.systems.reflection;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -109,27 +110,6 @@ public class ReflectUtils {
 		return (T[]) Array.newInstance(type, length);
 	}
 	
-	public static void printObject(Object o) {
-		if(o == null) {
-			System.out.println("null");
-			return;
-		}
-		Class<?> c = o.getClass();
-		while(c != null) {
-			for(Field f : c.getDeclaredFields()) {
-				if(!f.canAccess(o))
-					f.trySetAccessible();
-				try {
-					Object v = f.get(o);
-					System.out.println(f.getName() + ": " + (f.getType().isArray() ? Arrays.deepToString((Object[]) v) : v));
-				} catch (IllegalArgumentException | IllegalAccessException e) {
-					throw new IllegalStateException(e);
-				}
-			}
-			c = c.getSuperclass();
-		}
-	}
-	
 	public static Class<?> getComponentType(Class<?> arrayType) {
 		while(arrayType.isArray())
 			arrayType = arrayType.componentType();
@@ -149,7 +129,7 @@ public class ReflectUtils {
 	}
 	
 	public static boolean isSerializableField(int modifiers) {
-		return doModifiersMatch(modifiers, Modifier.PUBLIC, Modifier.TRANSIENT | Modifier.FINAL);
+		return doModifiersMatch(modifiers, Modifier.PUBLIC, Modifier.TRANSIENT | Modifier.FINAL | Modifier.STATIC);
 	}
 	
 	public static boolean isConstantField(int modifiers) {
@@ -300,11 +280,54 @@ public class ReflectUtils {
 	 * Used instead of {@link Enum#valueOf(Class, String)} because the {@code Class}
 	 * argument's value cannot be casted to an enum class type (we work with {@code Class<?>}
 	 * types and we cannot convert to {@code Class<T extends Enum<T>>}), this method
-	 * only exist to avoid suppress warnings annotations in the code.
+	 * exist solely to avoid suppress warnings annotations in the code.
+	 * 
+	 * @throws IllegalArgumentException see {@link Enum#valueOf(Class, String)}
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
-	public static Object getEnumConstant(Class<?> enumType, String constantName) {
+	public static Object getEnumConstant(Class<?> enumType, String constantName) throws IllegalArgumentException {
 		return Enum.valueOf((Class<Enum>) enumType, constantName);
 	}
+
+	/**
+	 * Returns the class that called the method calling this. Calling this from the
+	 * main method will throw an indexOutOfBoundsException.
+	 */
+	public static Class<?> getCallerClass() {
+		return getCallerClass(4);
+	}
 	
+	/**
+	 * Returns the class object that takes part in the current 
+	 * stack trace. Depending on {@code ignoreCount} a different
+	 * class will be returned:
+	 * <ul>
+	 * <li>0 - returns the Thread class</li>
+	 * <li>1 - returns this class (ReflectUtils.class)</li>
+	 * <li>2 - returns the class calling this method</li>
+	 * </ul>
+	 * Values larger than 3 will return classes anterior in the stack
+	 * trace. Values that would exceed the stack trace size will throw
+	 * an error, this happens when searching for the main method "caller".
+	 * 
+	 * @throws IndexOutOfBoundsException if {@code ignoreCount} is larger
+	 * 			than the stack trace size of the caller + 1.
+	 */
+	public static Class<?> getCallerClass(int ignoreCount) throws IndexOutOfBoundsException {
+		String className = Thread.currentThread().getStackTrace()[ignoreCount].getClassName();
+		try {
+			return Class.forName(className);
+		} catch (ClassNotFoundException e) {
+			throw new IllegalStateException("Unreachable class");
+		}
+	}
+
+    @SuppressWarnings("unchecked")
+    public static <T extends Annotation> T createAnnotationInstance(Class<T> annotationType, Map<String, Object> values) {
+    	return (T) Proxy.newProxyInstance(annotationType.getClassLoader(),
+    			new Class[] { annotationType },
+    			new AnnotationInvocationHandler(annotationType, values)
+		);
+    }
+    
 }
