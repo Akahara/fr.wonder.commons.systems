@@ -22,6 +22,13 @@ public class FooBar {
 	public static ArrayFoo AR_FOO1 = new ArrayFoo(new int[][] {{ 1, 2 }, { 3, 4 }});
 	public static ArrayBar AR_BAR1 = new ArrayBar(new Bar[] { new Bar(4), new Bar(-1), null });
 	public static ArrayBar AR_BAR2 = new ArrayBar(new Bar[] { new Bar(4), new ExtendedBar(-1, "s3"), null });
+	public static LinkedFoo UNLINKED_FOO = new LinkedFoo(null, -1);
+	public static LinkedFoo LINKED_FOO = new LinkedFoo(UNLINKED_FOO, -2);
+	public static LinkedFoo SELF_LINKED_FOO = new LinkedFoo(null, -3);
+	static { SELF_LINKED_FOO.next = SELF_LINKED_FOO; }
+	public static LinkedFoo PAIRED_FOO1 = new LinkedFoo(null, -4);
+	public static LinkedFoo PAIRED_FOO2 = new LinkedFoo(PAIRED_FOO1, -5);
+	static { PAIRED_FOO1.next = PAIRED_FOO2; }
 	
 	public static class Foo implements Serializable {
 		private static final long serialVersionUID = 6704406218884985517L;
@@ -138,6 +145,19 @@ public class FooBar {
 		@Override
 		public String toString() {
 			return "arraybar("+Arrays.deepToString(bars)+")";
+		}
+		
+	}
+	
+	public static class LinkedFoo implements Serializable {
+		private static final long serialVersionUID = -1363150136220575086L;
+		
+		LinkedFoo next;
+		int self;
+		
+		LinkedFoo(LinkedFoo next, int self) {
+			this.next = next;
+			this.self = self;
 		}
 		
 	}

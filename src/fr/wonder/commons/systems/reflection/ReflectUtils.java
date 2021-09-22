@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -56,6 +57,23 @@ public class ReflectUtils {
 			}
 		}
 		return map;
+	}
+	
+	/**
+	 * Performs and returns f.get(o)
+	 * 
+	 * <p>
+	 * This method catches checked exceptions (namely IllegalAccessException)
+	 * to throw an unchecked exception (namely IllegalArgumentException).
+	 * This method is meant to be used where it simplifies reading, to avoid
+	 * try-catch blocks on single uses of Field#get.
+	 */
+	public static Object safeGet(Field f, Object o) throws IllegalArgumentException {
+		try {
+			return f.get(o);
+		} catch (IllegalAccessException e) {
+			throw new IllegalArgumentException(e);
+		}
 	}
 	
 	/**
@@ -136,14 +154,23 @@ public class ReflectUtils {
 		return doModifiersInclude(modifiers, Modifier.PUBLIC | Modifier.STATIC | Modifier.FINAL);
 	}
 	
+	public static boolean isInstanceField(int modifiers) {
+		return doModifiersExclude(modifiers, Modifier.STATIC);
+	}
+	
 	// COMMENT many functions from ReflectUtils
 	
-	public static void runOnClassFields(Class<?> clazz, Consumer<Field> consumer) {
+	/** Returns true iff the class contains accessible fields */
+	public static boolean runOnClassFields(Class<?> clazz, Consumer<Field> consumer) {
+		boolean hasFields = false;
 		while(clazz != null) {
-			for(Field f : clazz.getDeclaredFields())
+			for(Field f : clazz.getDeclaredFields()) {
 				consumer.accept(f);
+				hasFields = true;
+			}
 			clazz = clazz.getSuperclass();
 		}
+		return hasFields;
 	}
 	
 	public static List<Field> getClassFields(Class<?> clazz) {
@@ -175,15 +202,26 @@ public class ReflectUtils {
 		return accumulateOnClassFields(clazz, consumer, null);
 	}
 
-	public static void runOnInstanceFields(Object obj, Consumer<Object> consumer) {
+	public static boolean runOnInstanceFields(Object obj, BiConsumer<Field, Object> consumer, boolean runOnInnaccessible) {
 		Class<?> clazz = obj.getClass();
-		runOnClassFields(clazz, f -> {
-			try {
-				consumer.accept(f.get(obj));
-			} catch (IllegalAccessException e) {
-				throw new IllegalArgumentException(e);
+		boolean hasInstanceFields = false;
+		while(clazz != null) {
+			for(Field f : clazz.getDeclaredFields()) {
+				if(isInstanceField(f.getModifiers())) {
+					Object fieldValue = null;
+					if(!f.canAccess(obj) && !f.trySetAccessible()) {
+						if(!runOnInnaccessible)
+							continue;
+					} else {
+						fieldValue = safeGet(f, obj);
+					}
+					consumer.accept(f, fieldValue);
+					hasInstanceFields = true;
+				}
 			}
-		});
+			clazz = clazz.getSuperclass();
+		}
+		return hasInstanceFields;
 	}
 	
 	/**

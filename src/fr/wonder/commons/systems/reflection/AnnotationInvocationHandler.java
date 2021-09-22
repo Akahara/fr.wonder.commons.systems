@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * !!!! Code taken shamelessly from https://github.com/leangen/geantyref
+ * !!!! Code taken from https://github.com/leangen/geantyref
  * <br>
  * TODO rewrite and make the annotationInvocationHandler my own
  * <br>
