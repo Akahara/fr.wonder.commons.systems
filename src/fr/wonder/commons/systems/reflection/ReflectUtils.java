@@ -367,5 +367,9 @@ public class ReflectUtils {
     			new AnnotationInvocationHandler(annotationType, values)
 		);
     }
+
+	public static StackTraceElement getCallerTrace() {
+		return new Exception().getStackTrace()[2];
+	}
     
 }

@@ -11,8 +11,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import fr.wonder.commons.systems.reflection.ReflectUtils;
+import fr.wonder.commons.utils.ArrayOperator;
 import fr.wonder.commons.utils.StringUtils;
 
 public class ProcessArguments {
@@ -181,8 +183,44 @@ public class ProcessArguments {
 		try {
 			entry.method.invoke(null, arguments);
 		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			throw new IllegalStateException("Unable to invoke method " + entry.method.getName(), e);
+			if(e.getCause() instanceof Error) {
+				cleanStackTrace(e.getCause());
+				throw (Error) e.getCause();
+			}
+			if(e.getCause() instanceof RuntimeException) {
+				cleanStackTrace(e.getCause());
+				throw (RuntimeException) e.getCause();
+			}
+			throw new IllegalStateException("Unable to invoke method " + entry.method, e);
 		}
+	}
+	
+	/**
+	 * Clean stack trace of uncaught exceptions thrown by the entry point method.
+	 * 
+	 * <p>
+	 * This method removes stack trace elements that come from this class, the
+	 * Method class and some jdk internal classes responsible for method invocations
+	 * through the reflect api.
+	 * 
+	 * <p>
+	 * It is used by the {@code run} functions of this class to make the trace
+	 * clearer, the trace won't contain references to this class but the first call
+	 * to a {@code run} function will still appear.
+	 * 
+	 * <p>
+	 * This method may have undesired results if the entry point method uses the
+	 * reflect api and does not catch invocation errors, as this method will also
+	 * remove these calls from the final stack trace.
+	 */
+	private static void cleanStackTrace(Throwable t) {
+		StackTraceElement[] trace = t.getStackTrace();
+		Set<String> classNames = Set.of(
+				ProcessArguments.class.getName(),
+				Method.class.getName(),
+				"jdk.internal.reflect.NativeMethodAccessorImpl",      // filter out inaccessible classes, may not have
+				"jdk.internal.reflect.DelegatingMethodAccessorImpl"); // effect depending on JDK implementation maybe ?
+		t.setStackTrace(ArrayOperator.filter(trace, el -> !classNames.contains(el.getClassName())));
 	}
 	
 	private Branch readArguments(List<String> args, Map<String, String> outOptions,
