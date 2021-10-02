@@ -4,6 +4,7 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,7 +24,18 @@ public class ProcessArguments {
 	private final Branch tree = new Branch();
 	private final Map<Class<?>, OptionsClass> optionClasses = new HashMap<>();
 	
-	public ProcessArguments(Class<?> entryPointClass) {
+	private final String programName;
+	
+	public ProcessArguments(String programName, Class<?> entryPointClass) {
+		this(programName);
+		addEntryPoint(entryPointClass);
+	}
+	
+	public ProcessArguments(String programName) {
+		this.programName = programName;
+	}
+	
+	public ProcessArguments addEntryPoint(Class<?> entryPointClass) {
 		for(Method m : entryPointClass.getDeclaredMethods()) {
 			EntryPoint annotation = m.getAnnotation(EntryPoint.class);
 			if(annotation == null)
@@ -42,19 +54,16 @@ public class ProcessArguments {
 		}
 		if(tree.subBranches.isEmpty() && tree.entryPoint == null)
 			throw new IllegalStateException("Class " + entryPointClass + " contains no entry points");
-	}
-	
-	public ProcessArguments() {
-		this(ReflectUtils.getCallerClass());
+		return this;
 	}
 
 	private Branch getEntrylessBranch(String path) throws IllegalArgumentException {
 		String[] parts = path.split(" ");
 		Branch current = tree;
-		int pl = parts[0].length() + 1;
+		int pl = 0;
 		
 		// begin at 1, skip the program name
-		for(int i = 1; i < parts.length; i++) {
+		for(int i = 0; i < parts.length; i++) {
 			String p = parts[i];
 			if(!canBeBranchName(p))
 				throw new IllegalArgumentException("Name " + p + " cannot be used as a branch path");
@@ -69,8 +78,10 @@ public class ProcessArguments {
 	}
 	
 	private void validateEntryMethodParameters(Method method) throws NoSuchMethodException, SecurityException {
-		if(!method.canAccess(null))
+		if(!Modifier.isStatic(method.getModifiers()))
 			throw new IllegalArgumentException("Method " + method + " cannot be accessed statically");
+		if(!method.canAccess(null))
+			throw new IllegalArgumentException("Method " + method + " cannot be accessed");
 		Parameter[] params = method.getParameters();
 		
 		for(int i = 1; i < params.length; i++) {
@@ -116,12 +127,15 @@ public class ProcessArguments {
 		if(args == null || args.length == 0)
 			throw new IllegalArgumentException("Missing arguments");
 		
+		if(tree.subBranches.isEmpty())
+			throw new IllegalStateException("No entry point registered");
+		
 		Map<String, String> options = new HashMap<>();
 		List<String> argumentsStrings = new ArrayList<>();
 		
 		Branch branch = readArguments(args, options, argumentsStrings);
 		
-		if(args.length > 1 && args[1].equals(HELP_OPTION))
+		if(args.length > 0 && args[0].equals(HELP_OPTION))
 			printHelp(args, branch);
 		else
 			runCommand(branch.entryPoint, options, argumentsStrings);
@@ -143,15 +157,15 @@ public class ProcessArguments {
 		run(StringUtils.splitWithQuotes(args, " "));
 	}
 
-	public static void runHere(String[] args) {
-		new ProcessArguments(ReflectUtils.getCallerClass()).run(args);
+	public static void runHere(String programName, String[] args) {
+		new ProcessArguments(programName, ReflectUtils.getCallerClass()).run(args);
 	}
 	
-	public static void runHere(String args) {
-		new ProcessArguments(ReflectUtils.getCallerClass()).run(args);
+	public static void runHere(String programName, String args) {
+		new ProcessArguments(programName, ReflectUtils.getCallerClass()).run(args);
 	}
 	
-	private static void printHelp(String[] args, Branch branch) {
+	private void printHelp(String[] args, Branch branch) {
 		if(branch.entryPoint != null) {
 			System.out.println("Usage: " + getEntryUsage(branch.entryPoint));
 			if(branch.entryPoint.options != null) {
@@ -198,10 +212,9 @@ public class ProcessArguments {
 	private Branch readArguments(String[] args, Map<String, String> outOptions, List<String> outArguments) {
 		Branch currentBranch = tree;
 		
-		int begin = 1; // skip arg0 the name of the program
-		
-		if(args.length > 1 && (args[1].equals("?") || args[1].equals(HELP_OPTION))) {
-			args[1] = HELP_OPTION;
+		int begin = 0;
+		if(args.length > 0 && (args[0].equals("?") || args[0].equals(HELP_OPTION))) {
+			args[0] = HELP_OPTION;
 			begin++; // skip --help
 		}
 		
@@ -227,9 +240,9 @@ public class ProcessArguments {
 				if(currentBranch.subBranches.containsKey(arg)) {
 					currentBranch = currentBranch.subBranches.get(arg);
 				} else {
+					String current = i == 0 ? programName : programName + " " + String.join(" ", Arrays.copyOfRange(args, 0, i));
 					throw new IllegalArgumentException("Unknown option " + arg + ".\nUsage: " 
-							+ String.join(" ", Arrays.copyOfRange(args, 0, i)) + " " + StringUtils.join("|",
-							currentBranch.subBranches.keySet()));
+							+ current + " " + StringUtils.join("|", currentBranch.subBranches.keySet()));
 				}
 			} else {
 				outArguments.add(arg);
@@ -242,7 +255,7 @@ public class ProcessArguments {
 		EntryPointFunction entry = currentBranch.entryPoint;
 		
 		if(entry == null) {
-			throw new IllegalArgumentException("Usage: " + String.join(" ", args)
+			throw new IllegalArgumentException("Usage: " + programName + " " + String.join(" ", args)
 					+ " " + StringUtils.join("|", currentBranch.subBranches.keySet()));
 		}
 
@@ -255,9 +268,9 @@ public class ProcessArguments {
 		return currentBranch;
 	}
 	
-	private static String getEntryUsage(EntryPointFunction entry) {
+	private String getEntryUsage(EntryPointFunction entry) {
 		Method entryMethod = entry.method;
-		String usage = entryMethod.getAnnotation(EntryPoint.class).path();
+		String usage = programName + " " + entryMethod.getAnnotation(EntryPoint.class).path();
 		for(int i = 0; i < entry.paramCount(); i++) {
 			if(!entry.argumentsAnnotations[i].defaultValue().isEmpty())
 				usage += " [" + entry.argumentsAnnotations[i].name() + "]";
