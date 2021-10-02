@@ -3,6 +3,8 @@ package fr.wonder.commons.systems.process.argparser;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,21 +33,21 @@ final class OptionsClass {
 			String name = opt.name();
 			String shortand = opt.shortand();
 			Class<?> type = f.getType();
-			if(!ProcessArguments.canBeOptionName(name))
+			if(!ProcessArgumentsHelper.canBeOptionName(name))
 				throw new IllegalArgumentException("Name " + name + " in class " +
 						clazz.getName() + " cannot be an option on field " + f);
 			if(optionFields.put(name, f) != null)
 				throw new IllegalArgumentException("Name " + name + " in class " +
 						clazz.getName() + " specified twice on field " + f);
 			if(!shortand.isEmpty()) {
-				if(!ProcessArguments.canBeOptionShortand(shortand))
+				if(!ProcessArgumentsHelper.canBeOptionShortand(shortand))
 					throw new IllegalArgumentException("Name " + shortand + " in class " +
 							clazz.getName() + " cannot be a shortand on field " + f);
 				if(optionFields.put(shortand, f) != null)
 					throw new IllegalArgumentException("Name " + shortand + " in class " +
 							clazz.getName() + " specified twice");
 			}
-			if(!ProcessArguments.canBeArgumentType(type))
+			if(!ProcessArgumentsHelper.canBeArgumentType(type))
 				throw new IllegalArgumentException("Option of field " + f + " in class " +
 						clazz.getName() + " cannot be of type " + type);
 		}
@@ -58,6 +60,12 @@ final class OptionsClass {
 		} catch (IllegalAccessException | InvocationTargetException | InstantiationException e) {
 			throw new IllegalStateException("Cannot instantiace option class " + clazz, e);
 		}
+	}
+
+	public Collection<String> getAvailableOptionNames() {
+		Collection<String> options = new ArrayList<>(optionFields.keySet());
+		options.removeIf(opt -> !ProcessArgumentsHelper.canBeOptionName(opt));
+		return options;
 	}
 	
 }

@@ -11,7 +11,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Argument {
 	
-	public int index() default -1;
 	public String name();
 	public String desc() default "";
 	public String defaultValue() default "";

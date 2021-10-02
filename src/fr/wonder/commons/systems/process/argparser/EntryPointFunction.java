@@ -36,7 +36,7 @@ final class EntryPointFunction {
 						argumentsAnnotations[optIdx].defaultValue(),
 						p.getType(),
 						argumentsAnnotations[optIdx].name());
-			} catch (IllegalArgumentException e) {
+			} catch (ArgumentError e) {
 				throw new IllegalStateException("Invalid default value on method " + method, e);
 			}
 		}
@@ -53,7 +53,7 @@ final class EntryPointFunction {
 			args = arguments.value();
 		else if(argument != null)
 			args = new Argument[] { argument };
-		if(args != null && m.getParameterCount() != args.length + (ProcessArguments.doesMethodUseOptions(m) ? 1 : 0))
+		if(args != null && m.getParameterCount() != args.length + (ProcessArgumentsHelper.doesMethodUseOptions(m) ? 1 : 0))
 			throw new IllegalArgumentException("Invalid number of arguments on " + m.getName() + ", either set all arguments or none");
 		return args;
 	}

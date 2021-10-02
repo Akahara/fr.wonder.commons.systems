@@ -13,19 +13,19 @@ import fr.wonder.commons.utils.StringUtils;
 
 class OptionsHelper {
 
-	static Object parseOptionValue(String arg, Class<?> argType, String argName) throws IllegalArgumentException {
+	static Object parseOptionValue(String arg, Class<?> argType, String argName) throws ArgumentError {
 		if(PrimitiveUtils.isPrimitiveType(argType)) {
 			if(PrimitiveUtils.isFloatingPoint(argType)) {
 				try {
 					return PrimitiveUtils.castToPrimitive(Double.parseDouble(arg), argType);
-				} catch (NumberFormatException e) {
-					throw new IllegalArgumentException("Expected double value for <" + argName + ">, got '" + arg + "'");
+				} catch (IllegalArgumentException e) {
+					throw new ArgumentError("Expected double value for <" + argName + ">, got '" + arg + "'");
 				}
 			} else {
 				try {
 					return PrimitiveUtils.castToPrimitive(Long.parseLong(arg), argType);
-				} catch (NumberFormatException e) {
-					throw new IllegalArgumentException("Expected integer value for <" + argName + ">, got '" + arg + "'");
+				} catch (IllegalArgumentException e) {
+					throw new ArgumentError("Expected integer value for <" + argName + ">, got '" + arg + "'");
 				}
 			}
 		} else if(argType == String.class) {
@@ -34,13 +34,13 @@ class OptionsHelper {
 			try {
 				return new File(arg).getCanonicalFile();
 			} catch (IOException e) {
-				throw new IllegalStateException("Cannot resolve path " + arg, e);
+				throw new ArgumentError("Cannot resolve path " + arg + ": " + e.getMessage());
 			}
 		} else if(argType.isEnum()) {
 			try {
 				return ReflectUtils.getEnumConstant(argType, arg.toUpperCase());
 			} catch (IllegalArgumentException e) {
-				throw new IllegalArgumentException("Expected one of " + StringUtils.join("|", argType.getEnumConstants()) +
+				throw new ArgumentError("Expected one of " + StringUtils.join("|", argType.getEnumConstants()) +
 						" for <" + argName + ">, got '" + arg + "'");
 			}
 		} else {
@@ -72,7 +72,12 @@ class OptionsHelper {
 				return;
 			}
 			
-			Object argVal = parseOptionValue(value, optionType, opt);
+			Object argVal;
+			try {
+				argVal = parseOptionValue(value, optionType, opt);
+			} catch (ArgumentError e) {
+				throw new IllegalStateException("Default value does not match argument type: " + e.getMessage());
+			}
 			
 			if(PrimitiveUtils.isTruePrimitive(optionType)) {
 				PrimitiveUtils.setPrimitive(optionObj, optionField, (Number) argVal);

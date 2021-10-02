@@ -10,5 +10,6 @@ import java.lang.annotation.Target;
 public @interface EntryPoint {
 
 	public String path();
+	public String help() default "";
 	
 }
