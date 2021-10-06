@@ -120,17 +120,18 @@ public class ProcessArguments {
 			EntryPointFunction f = branch.entryPoint;
 			Method m = f.method;
 			System.out.println("Usage: " + getEntryUsage(f));
-			for(int i = f.optionsOffset(); i < m.getParameterCount(); i++) {
+			int optionsOffset =  f.optionsOffset();
+			for(int i = optionsOffset; i < m.getParameterCount(); i++) {
 				Class<?> argConcreteType = m.getParameterTypes()[i];
 				String argName = f.argumentsAnnotations == null ?
 						m.getParameters()[i].getName() :
-						f.argumentsAnnotations[i].name();
+						f.argumentsAnnotations[i-optionsOffset].name();
 				String argType = argConcreteType.isEnum() ?
 						StringUtils.join("|", argConcreteType.getEnumConstants()) :
 						argConcreteType.getSimpleName();
 				String argDesc = f.argumentsAnnotations == null ?
 						"" :
-						f.argumentsAnnotations[i].desc();
+						f.argumentsAnnotations[i-optionsOffset].desc();
 				if(!argDesc.isBlank())
 					argDesc = "  - " + argDesc.replaceAll("\n", "    ");
 				System.out.println("  " + argName + " (" + argType + ")" + argDesc);
@@ -156,8 +157,14 @@ public class ProcessArguments {
 	private static void runCommand(EntryPointFunction entry, Map<String, String> options, List<String> argumentsStrings) {
 		Object[] arguments = Arrays.copyOf(entry.defaultValues, entry.defaultValues.length);
 		
-		if(entry.options != null)
-			arguments[0] = OptionsHelper.createOptionsInstance(options, entry.options);
+		if(entry.options != null) {
+			try {
+				arguments[0] = OptionsHelper.createOptionsInstance(options, entry.options);
+			} catch (ArgumentError e) {
+				System.err.println("Invalid use of options: " + e.getMessage());
+				return;
+			}
+		}
 		
 		boolean validArguments = true;
 		
@@ -186,7 +193,7 @@ public class ProcessArguments {
 	}
 	
 	private Branch readArguments(List<String> args, Map<String, String> outOptions,
-			List<String> outArguments, boolean checkValidEntryPoint) throws ArgumentError {
+			List<String> outArguments, boolean checkValidEntryPoint) throws ArgumentError { // FIX options not read correctly (-a -b will set "-b" as value for "-a")
 		Branch currentBranch = treeRoot;
 		
 		for(int i = 0; i < args.size(); i++) {
@@ -249,7 +256,7 @@ public class ProcessArguments {
 	
 	private String getUnfinishedPathUsage(List<String> args, int readCount, Branch currentBranch) {
 		return "Usage: " + getCurrentPathString(args, readCount) + " " 
-				+ StringUtils.join("|", currentBranch.subBranches.keySet()) + " ...";
+				+ StringUtils.join("|", currentBranch.subBranches.keySet()) + " ...\nUse '" + programName + " --help <cmd>' for help";
 	}
 	
 	private String getEntryUsage(EntryPointFunction entry) {

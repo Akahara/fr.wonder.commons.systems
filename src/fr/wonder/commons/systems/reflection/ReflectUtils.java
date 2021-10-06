@@ -359,13 +359,15 @@ public class ReflectUtils {
 			throw new IllegalStateException("Unreachable class");
 		}
 	}
+	
+	public static StackTraceElement getCallerTrace() {
+		return new Exception().getStackTrace()[2];
+	}
 
-    @SuppressWarnings("unchecked")
-    public static <T extends Annotation> T createAnnotationInstance(Class<T> annotationType, Map<String, Object> values) {
-    	return (T) Proxy.newProxyInstance(annotationType.getClassLoader(),
-    			new Class[] { annotationType },
-    			new AnnotationInvocationHandler(annotationType, values)
-		);
-    }
+	@SuppressWarnings("unchecked")
+	public static <T extends Annotation> T createAnnotationInstance(Class<T> annotationType, Map<String, Object> values) {
+		return (T) Proxy.newProxyInstance(annotationType.getClassLoader(), new Class[] { annotationType },
+				new AnnotationInvocationHandler(annotationType, values));
+	}
     
 }

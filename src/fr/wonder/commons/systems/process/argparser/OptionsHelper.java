@@ -18,13 +18,13 @@ class OptionsHelper {
 			if(PrimitiveUtils.isFloatingPoint(argType)) {
 				try {
 					return PrimitiveUtils.castToPrimitive(Double.parseDouble(arg), argType);
-				} catch (IllegalArgumentException e) {
+				} catch (IllegalArgumentException | NullPointerException e) {
 					throw new ArgumentError("Expected double value for <" + argName + ">, got '" + arg + "'");
 				}
 			} else {
 				try {
 					return PrimitiveUtils.castToPrimitive(Long.parseLong(arg), argType);
-				} catch (IllegalArgumentException e) {
+				} catch (IllegalArgumentException | NullPointerException e) {
 					throw new ArgumentError("Expected integer value for <" + argName + ">, got '" + arg + "'");
 				}
 			}
@@ -33,13 +33,13 @@ class OptionsHelper {
 		} else if(argType == File.class) {
 			try {
 				return new File(arg).getCanonicalFile();
-			} catch (IOException e) {
+			} catch (IOException | NullPointerException e) {
 				throw new ArgumentError("Cannot resolve path " + arg + ": " + e.getMessage());
 			}
 		} else if(argType.isEnum()) {
 			try {
 				return ReflectUtils.getEnumConstant(argType, arg.toUpperCase());
-			} catch (IllegalArgumentException e) {
+			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new ArgumentError("Expected one of " + StringUtils.join("|", argType.getEnumConstants()) +
 						" for <" + argName + ">, got '" + arg + "'");
 			}
@@ -48,7 +48,7 @@ class OptionsHelper {
 		}
 	}
 
-	static Object createOptionsInstance(Map<String, String> rawOptions, OptionsClass options) {
+	static Object createOptionsInstance(Map<String, String> rawOptions, OptionsClass options) throws ArgumentError {
 		Object instance = options.newInstance();
 		
 		for(Entry<String, String> optPair : rawOptions.entrySet()) {
@@ -61,7 +61,7 @@ class OptionsHelper {
 		return instance;
 	}
 
-	private static void setOption(Object optionObj, String opt, String value, Field optionField) {
+	private static void setOption(Object optionObj, String opt, String value, Field optionField) throws ArgumentError {
 		try {
 			Class<?> optionType = optionField.getType();
 			
@@ -73,11 +73,7 @@ class OptionsHelper {
 			}
 			
 			Object argVal;
-			try {
 				argVal = parseOptionValue(value, optionType, opt);
-			} catch (ArgumentError e) {
-				throw new IllegalStateException("Default value does not match argument type: " + e.getMessage());
-			}
 			
 			if(PrimitiveUtils.isTruePrimitive(optionType)) {
 				PrimitiveUtils.setPrimitive(optionObj, optionField, (Number) argVal);
