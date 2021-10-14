@@ -106,7 +106,7 @@ public class ProcessArguments {
 		return optionsClass;
 	}
 	
-
+	
 	
 	public void run(String[] args) {
 		if(treeRoot.subBranches.isEmpty())
@@ -310,7 +310,7 @@ public class ProcessArguments {
 	
 	private String getUnfinishedPathUsage(List<String> args, int readCount, Branch currentBranch) {
 		return "Usage: " + getCurrentPathString(args, readCount) + " " 
-				+ StringUtils.join("|", currentBranch.subBranches.keySet()) + " ...";
+				+ StringUtils.join("|", currentBranch.subBranches.keySet()) + " ...\nUse '" + progName + " --help <cmd>' for help";
 	}
 	
 	private String getCurrentPathString(List<String> args, int readCount) {

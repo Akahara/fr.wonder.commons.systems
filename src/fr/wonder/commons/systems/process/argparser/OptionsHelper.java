@@ -19,13 +19,13 @@ class OptionsHelper {
 			if(PrimitiveUtils.isFloatingPoint(argType)) {
 				try {
 					return PrimitiveUtils.castToPrimitive(Double.parseDouble(arg), argType);
-				} catch (IllegalArgumentException e) {
+				} catch (IllegalArgumentException | NullPointerException e) {
 					throw new ArgumentError("Expected double value for <" + argName + ">, got '" + arg + "'");
 				}
 			} else {
 				try {
 					return PrimitiveUtils.castToPrimitive(Long.parseLong(arg), argType);
-				} catch (IllegalArgumentException e) {
+				} catch (IllegalArgumentException | NullPointerException e) {
 					throw new ArgumentError("Expected integer value for <" + argName + ">, got '" + arg + "'");
 				}
 			}
@@ -34,13 +34,13 @@ class OptionsHelper {
 		} else if(argType == File.class) {
 			try {
 				return new File(arg).getCanonicalFile();
-			} catch (IOException e) {
+			} catch (IOException | NullPointerException e) {
 				throw new ArgumentError("Cannot resolve path " + arg + ": " + e.getMessage());
 			}
 		} else if(argType.isEnum()) {
 			try {
 				return ReflectUtils.getEnumConstant(argType, arg.toUpperCase());
-			} catch (IllegalArgumentException e) {
+			} catch (IllegalArgumentException | NullPointerException e) {
 				throw new ArgumentError("Expected one of " + StringUtils.join("|", argType.getEnumConstants()) +
 						" for <" + argName + ">, got '" + arg + "'");
 			}

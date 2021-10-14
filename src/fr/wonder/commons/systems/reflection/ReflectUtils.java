@@ -359,6 +359,10 @@ public class ReflectUtils {
 			throw new IllegalStateException("Unreachable class");
 		}
 	}
+	
+	public static StackTraceElement getCallerTrace() {
+		return new Exception().getStackTrace()[2];
+	}
 
     @SuppressWarnings("unchecked")
     public static <T extends Annotation> T createAnnotationInstance(Class<T> annotationType, Map<String, Object> values) {
@@ -368,8 +372,4 @@ public class ReflectUtils {
 		);
     }
 
-	public static StackTraceElement getCallerTrace() {
-		return new Exception().getStackTrace()[2];
-	}
-    
 }
