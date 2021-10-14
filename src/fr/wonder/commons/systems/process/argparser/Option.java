@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
-public @interface ProcessOption {
+public @interface Option {
 	
 	public String name();
 	public String shortand() default "";

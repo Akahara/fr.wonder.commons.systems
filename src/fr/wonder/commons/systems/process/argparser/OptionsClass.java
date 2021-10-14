@@ -20,36 +20,41 @@ final class OptionsClass {
 		this.optionFields = optionFields;
 	}
 	
-	static OptionsClass getOptions(Class<?> clazz) throws NoSuchMethodException, SecurityException {
-		Constructor<?> constructor = clazz.getDeclaredConstructor();
+	static OptionsClass createOptionsClass(Class<?> clazz) throws InvalidDeclarationError {
+		Constructor<?> constructor;
+		try {
+			constructor = clazz.getDeclaredConstructor();
+			if(!constructor.canAccess(null))
+				throw new InvalidDeclarationError("Option class " + clazz.getName() + " does not declare an empty constructor");
+		} catch (NoSuchMethodException | SecurityException e) {
+			throw new InvalidDeclarationError("Option class " + clazz.getName() + " does not declare an empty constructor", e);
+		}
 		Map<String, Field> optionFields = new HashMap<>();
 		
-		if(!constructor.canAccess(null))
-			throw new NoSuchMethodException("Class " + clazz.getName() + " does not declare an empty constructor");
 		for(Field f : clazz.getDeclaredFields()) {
-			ProcessOption opt = f.getAnnotation(ProcessOption.class);
+			Option opt = f.getAnnotation(Option.class);
 			if(opt == null)
 				continue;
 			String name = opt.name();
 			String shortand = opt.shortand();
 			Class<?> type = f.getType();
 			if(!ProcessArgumentsHelper.canBeOptionName(name))
-				throw new IllegalArgumentException("Name " + name + " in class " +
+				throw new InvalidDeclarationError("Name " + name + " in option class " +
 						clazz.getName() + " cannot be an option on field " + f);
 			if(optionFields.put(name, f) != null)
-				throw new IllegalArgumentException("Name " + name + " in class " +
+				throw new InvalidDeclarationError("Name " + name + " in class " +
 						clazz.getName() + " specified twice on field " + f);
 			if(!shortand.isEmpty()) {
 				if(!ProcessArgumentsHelper.canBeOptionShortand(shortand))
-					throw new IllegalArgumentException("Name " + shortand + " in class " +
+					throw new InvalidDeclarationError("Name " + shortand + " in option class " +
 							clazz.getName() + " cannot be a shortand on field " + f);
 				if(optionFields.put(shortand, f) != null)
-					throw new IllegalArgumentException("Name " + shortand + " in class " +
+					throw new InvalidDeclarationError("Name " + shortand + " in option class " +
 							clazz.getName() + " specified twice");
 			}
 			if(!ProcessArgumentsHelper.canBeArgumentType(type))
-				throw new IllegalArgumentException("Option of field " + f + " in class " +
-						clazz.getName() + " cannot be of type " + type);
+				throw new InvalidDeclarationError("Option of field " + f + " in option class " +
+						clazz.getName() + " has invalid type " + type.getName());
 		}
 		return new OptionsClass(clazz, constructor, optionFields);
 	}

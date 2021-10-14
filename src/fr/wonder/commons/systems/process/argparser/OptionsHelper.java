@@ -6,6 +6,7 @@ import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import fr.wonder.commons.exceptions.ErrorWrapper;
 import fr.wonder.commons.exceptions.UnreachableException;
 import fr.wonder.commons.systems.reflection.PrimitiveUtils;
 import fr.wonder.commons.systems.reflection.ReflectUtils;
@@ -48,27 +49,26 @@ class OptionsHelper {
 		}
 	}
 
-	static Object createOptionsInstance(Map<String, String> rawOptions, OptionsClass options) {
+	static Object createOptionsInstance(Map<String, String> rawOptions, OptionsClass options, ErrorWrapper errors) {
 		Object instance = options.newInstance();
 		
 		for(Entry<String, String> optPair : rawOptions.entrySet()) {
 			Field optField = options.optionFields.get(optPair.getKey());
 			if(optField == null)
-				throw new IllegalArgumentException("Unknown option: " + optPair.getKey());
-			setOption(instance, optPair.getKey(), optPair.getValue(), optField);
+				errors.add("Unknown option: " + optPair.getKey());
+			else
+				setOption(instance, optField, optPair.getKey(), optPair.getValue(), errors);
 		}
 		
 		return instance;
 	}
 
-	private static void setOption(Object optionObj, String opt, String value, Field optionField) {
+	private static void setOption(Object optionObj, Field optionField, String opt, String value, ErrorWrapper errors) {
 		try {
 			Class<?> optionType = optionField.getType();
 			
-			if(optionType.equals(boolean.class)) {
-				if(value != null)
-					throw new IllegalArgumentException("Superfluous option value: " + value + " for option " + opt);
-				optionField.setBoolean(optionObj, true);
+			if(optionType == boolean.class) {
+				optionField.setBoolean(optionObj, !optionField.getBoolean(optionObj));
 				return;
 			}
 			
@@ -76,7 +76,8 @@ class OptionsHelper {
 			try {
 				argVal = parseOptionValue(value, optionType, opt);
 			} catch (ArgumentError e) {
-				throw new IllegalStateException("Default value does not match argument type: " + e.getMessage());
+				errors.add(e.getMessage());
+				return;
 			}
 			
 			if(PrimitiveUtils.isTruePrimitive(optionType)) {
@@ -85,8 +86,12 @@ class OptionsHelper {
 				optionField.set(optionObj, argVal);
 			}
 		} catch (IllegalAccessException e) {
-			throw new IllegalStateException("Cannot set an option field value", e);
+			errors.add("Cannot Cannot set an option field value: " + e.getMessage());
 		}
+	}
+
+	public static boolean doesOptionTakeArgument(Class<?> type) {
+		return type != boolean.class;
 	}
 
 }
