@@ -28,13 +28,16 @@ class PATests {
 		testRun("print -bdq");
 		testRun("print -bd -q");
 		testRun("print -bdg valForG");
+		testRun("test2 array \"s t \\\\\"r\"");
+		testRun("abc \\\" def \"gh ij\" kl");
 		
 	}
 	
 	private static void testRun(String args) {
-		System.out.println("=== '" + args + "' ===\n");
+		String[] argArray = StringUtils.splitWithQuotes(args, " ");
+		System.out.println("=== '" + args + "' === " + StringUtils.toObjectString(argArray) + " ===\n");
 		System.out.flush();
-		ProcessArguments.runHere("patest", args.split(" "));
+		ArgParser.runHere("patest", argArray);
 		System.err.flush();
 		System.out.flush();
 		System.out.println();

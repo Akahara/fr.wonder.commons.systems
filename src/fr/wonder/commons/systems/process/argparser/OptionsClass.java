@@ -38,21 +38,21 @@ final class OptionsClass {
 			String name = opt.name();
 			String shortand = opt.shortand();
 			Class<?> type = f.getType();
-			if(!ProcessArgumentsHelper.canBeOptionName(name))
+			if(!ArgParserHelper.canBeOptionName(name))
 				throw new InvalidDeclarationError("Name " + name + " in option class " +
 						clazz.getName() + " cannot be an option on field " + f);
 			if(optionFields.put(name, f) != null)
 				throw new InvalidDeclarationError("Name " + name + " in class " +
 						clazz.getName() + " specified twice on field " + f);
 			if(!shortand.isEmpty()) {
-				if(!ProcessArgumentsHelper.canBeOptionShortand(shortand))
+				if(!ArgParserHelper.canBeOptionShortand(shortand))
 					throw new InvalidDeclarationError("Name " + shortand + " in option class " +
 							clazz.getName() + " cannot be a shortand on field " + f);
 				if(optionFields.put(shortand, f) != null)
 					throw new InvalidDeclarationError("Name " + shortand + " in option class " +
 							clazz.getName() + " specified twice");
 			}
-			if(!ProcessArgumentsHelper.canBeArgumentType(type))
+			if(!ArgParserHelper.canBeArgumentType(type))
 				throw new InvalidDeclarationError("Option of field " + f + " in option class " +
 						clazz.getName() + " has invalid type " + type.getName());
 		}
@@ -69,7 +69,7 @@ final class OptionsClass {
 
 	public Collection<String> getAvailableOptionNames() {
 		Collection<String> options = new ArrayList<>(optionFields.keySet());
-		options.removeIf(opt -> !ProcessArgumentsHelper.canBeOptionName(opt));
+		options.removeIf(opt -> !ArgParserHelper.canBeOptionName(opt));
 		return options;
 	}
 	

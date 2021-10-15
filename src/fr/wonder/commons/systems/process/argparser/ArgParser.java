@@ -20,7 +20,7 @@ import fr.wonder.commons.systems.reflection.ReflectUtils;
 import fr.wonder.commons.utils.ArrayOperator;
 import fr.wonder.commons.utils.StringUtils;
 
-public class ProcessArguments {
+public class ArgParser {
 
 	private final Branch treeRoot = new Branch();
 	private final Map<Class<?>, OptionsClass> optionClasses = new HashMap<>();
@@ -28,7 +28,7 @@ public class ProcessArguments {
 	
 	private final String progName;
 	
-	public ProcessArguments(String progName) {
+	public ArgParser(String progName) {
 		this.progName = progName;
 	}
 	
@@ -37,16 +37,16 @@ public class ProcessArguments {
 	}
 
 	public static void runHere(String programName, String[] args) {
-		new ProcessArguments(programName).addEntryPoints(ReflectUtils.getCallerClass()).run(args);
+		new ArgParser(programName).addEntryPoints(ReflectUtils.getCallerClass()).run(args);
 	}
 	
 	public static void runHere(String programName, String args) {
-		new ProcessArguments(programName).addEntryPoints(ReflectUtils.getCallerClass()).run(args);
+		new ArgParser(programName).addEntryPoints(ReflectUtils.getCallerClass()).run(args);
 	}
 	
 	
 	
-	public ProcessArguments addEntryPoints(Class<?> entryPointClass) throws InvalidDeclarationError {
+	public ArgParser addEntryPoints(Class<?> entryPointClass) throws InvalidDeclarationError {
 		for(Method m : entryPointClass.getDeclaredMethods()) {
 			EntryPoint annotation = m.getAnnotation(EntryPoint.class);
 			if(annotation == null)
@@ -56,7 +56,7 @@ public class ProcessArguments {
 			
 			try {
 				Branch branch = getEntrylessBranch(path);
-				ProcessArgumentsHelper.validateEntryMethodParameters(m);
+				ArgParserHelper.validateEntryMethodParameters(m);
 				OptionsClass opt = getOrCreateOptionClass(m);
 				branch.entryPoint = EntryPointFunction.createEntryPointFunction(m, opt);
 			} catch (NoSuchMethodException | SecurityException | IllegalArgumentException e) {
@@ -74,7 +74,7 @@ public class ProcessArguments {
 		int pl = 0;
 		
 		for(String p : parts) {
-			if(!ProcessArgumentsHelper.canBeBranchName(p))
+			if(!ArgParserHelper.canBeBranchName(p))
 				throw new InvalidDeclarationError("Name " + p + " cannot be used as a branch path");
 			
 			if(current.entryPoint != null)
@@ -87,7 +87,7 @@ public class ProcessArguments {
 	}
 	
 	private OptionsClass getOrCreateOptionClass(Method method) throws InvalidDeclarationError {
-		if(!ProcessArgumentsHelper.doesMethodUseOptions(method))
+		if(!ArgParserHelper.doesMethodUseOptions(method))
 			return null;
 		Class<?> optionsType = method.getParameterTypes()[0];
 		OptionsClass optionsClass = optionClasses.get(optionsType);
@@ -117,7 +117,7 @@ public class ProcessArguments {
 		Branch entryPointBranch;
 		
 		List<String> arguments = args == null ? Collections.emptyList() : new ArrayList<>(Arrays.asList(args));
-		boolean isHelpPrint = !arguments.isEmpty() && ProcessArgumentsHelper.isHelpPrint(arguments.get(0));
+		boolean isHelpPrint = !arguments.isEmpty() && ArgParserHelper.isHelpPrint(arguments.get(0));
 		if(isHelpPrint) arguments.remove(0);
 		
 		try {
@@ -237,7 +237,7 @@ public class ProcessArguments {
 	private static void cleanStackTrace(Throwable t) {
 		StackTraceElement[] trace = t.getStackTrace();
 		Set<String> classNames = Set.of(
-				ProcessArguments.class.getName(),
+				ArgParser.class.getName(),
 				Method.class.getName(),
 				"jdk.internal.reflect.NativeMethodAccessorImpl",      // filter out inaccessible classes, may not have
 				"jdk.internal.reflect.DelegatingMethodAccessorImpl"); // effect depending on JDK implementation maybe ?

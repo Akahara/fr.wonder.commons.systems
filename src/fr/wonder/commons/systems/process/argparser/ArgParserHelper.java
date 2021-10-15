@@ -7,7 +7,7 @@ import java.lang.reflect.Parameter;
 
 import fr.wonder.commons.systems.reflection.PrimitiveUtils;
 
-public class ProcessArgumentsHelper {
+public class ArgParserHelper {
 
 	public static void validateEntryMethodParameters(Method method) throws NoSuchMethodException, SecurityException {
 		if(!Modifier.isStatic(method.getModifiers()))
@@ -17,7 +17,7 @@ public class ProcessArgumentsHelper {
 		Parameter[] params = method.getParameters();
 		
 		for(int i = 1; i < params.length; i++) {
-			if(!ProcessArgumentsHelper.canBeArgumentType(params[i].getType()))
+			if(!ArgParserHelper.canBeArgumentType(params[i].getType()))
 				throw new IllegalArgumentException("Argument " + params[i].getName() +
 						" has an invalid type " + params[i].getType().getName());
 		}
