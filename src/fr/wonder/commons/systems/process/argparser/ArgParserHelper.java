@@ -23,8 +23,13 @@ public class ArgParserHelper {
 		}
 	}
 
+	public static boolean isRootBranch(String path) {
+		return path.equals("") || path.equals(":root");
+	}
+
 	public static boolean canBeBranchName(String text) {
-		return text.matches("[a-zA-Z]+([a-zA-Z\\-0-9]+[a-zA-Z0-9])?") &&
+		return (text.matches("[a-zA-Z]+([a-zA-Z\\-0-9]+[a-zA-Z0-9])?") ||
+				isRootBranch(text)) &&
 				!isHelpPrint(text);
 	}
 

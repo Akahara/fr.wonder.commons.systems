@@ -16,100 +16,40 @@ import java.util.Set;
 
 import fr.wonder.commons.exceptions.ErrorWrapper;
 import fr.wonder.commons.exceptions.ErrorWrapper.WrappedException;
+import fr.wonder.commons.files.FilesUtils;
 import fr.wonder.commons.systems.reflection.ReflectUtils;
 import fr.wonder.commons.utils.ArrayOperator;
 import fr.wonder.commons.utils.StringUtils;
 
 public class ArgParser {
 
+	private final Class<?> entryPointClass;
+	private final String progName;
+	
 	private final Branch treeRoot = new Branch();
 	private final Map<Class<?>, OptionsClass> optionClasses = new HashMap<>();
 	private final Map<String, Boolean> optionsTakingArguments = new HashMap<>();
 	
-	private final String progName;
-	
-	public ArgParser(String progName) {
+	public ArgParser(String progName, Class<?> entryPointClass) throws InvalidDeclarationError {
 		this.progName = progName;
+		this.entryPointClass = entryPointClass;
+		populateEntryPoints();
 	}
 	
 	public void run(String args) {
 		run(StringUtils.splitWithQuotes(args, " "));
 	}
 
-	public static void runHere(String programName, String[] args) {
-		new ArgParser(programName).addEntryPoints(ReflectUtils.getCallerClass()).run(args);
+	public static void runHere(String[] args) throws InvalidDeclarationError {
+		new ArgParser(FilesUtils.getFileName(FilesUtils.getExecutionFile()), ReflectUtils.getCallerClass()).run(args);
 	}
 	
-	public static void runHere(String programName, String args) {
-		new ArgParser(programName).addEntryPoints(ReflectUtils.getCallerClass()).run(args);
+	public static void runHere(String programName, String args) throws InvalidDeclarationError {
+		new ArgParser(FilesUtils.getFileName(FilesUtils.getExecutionFile()), ReflectUtils.getCallerClass()).run(args);
 	}
-	
-	
-	
-	public ArgParser addEntryPoints(Class<?> entryPointClass) throws InvalidDeclarationError {
-		for(Method m : entryPointClass.getDeclaredMethods()) {
-			EntryPoint annotation = m.getAnnotation(EntryPoint.class);
-			if(annotation == null)
-				continue;
-			
-			String path = annotation.path();
-			
-			try {
-				Branch branch = getEntrylessBranch(path);
-				ArgParserHelper.validateEntryMethodParameters(m);
-				OptionsClass opt = getOrCreateOptionClass(m);
-				branch.entryPoint = EntryPointFunction.createEntryPointFunction(m, opt);
-			} catch (NoSuchMethodException | SecurityException | IllegalArgumentException e) {
-				throw new InvalidDeclarationError("Cannot register branch '" + path + "' for method " + m.getName(), e);
-			}
-		}
-		if(treeRoot.subBranches.isEmpty() && treeRoot.entryPoint == null)
-			throw new InvalidDeclarationError("Class " + entryPointClass + " contains no entry points");
-		return this;
-	}
-
-	private Branch getEntrylessBranch(String path) throws InvalidDeclarationError {
-		String[] parts = path.split(" ");
-		Branch current = treeRoot;
-		int pl = 0;
-		
-		for(String p : parts) {
-			if(!ArgParserHelper.canBeBranchName(p))
-				throw new InvalidDeclarationError("Name " + p + " cannot be used as a branch path");
-			
-			if(current.entryPoint != null)
-				throw new InvalidDeclarationError("Branch '" + path.substring(0, pl) + "' has a declared entry point, it cannot have sub-paths");
-			current = current.subBranches.computeIfAbsent(p, _p -> new Branch());
-			pl += p.length()+1;
-		}
-		
-		return current;
-	}
-	
-	private OptionsClass getOrCreateOptionClass(Method method) throws InvalidDeclarationError {
-		if(!ArgParserHelper.doesMethodUseOptions(method))
-			return null;
-		Class<?> optionsType = method.getParameterTypes()[0];
-		OptionsClass optionsClass = optionClasses.get(optionsType);
-		if(optionsClass == null)
-			optionsClass = OptionsClass.createOptionsClass(optionsType);
-		for(Entry<String, Field> option : optionsClass.optionFields.entrySet()) {
-			String optName = option.getKey();
-			Boolean alreadyDefinedTakesArg = optionsTakingArguments.get(optName);
-			boolean takesArg = OptionsHelper.doesOptionTakeArgument(option.getValue().getType());
-			if(alreadyDefinedTakesArg != null && takesArg != alreadyDefinedTakesArg)
-				throw new InvalidDeclarationError("Option '" + optName + "' was defined in two option classes,"
-						+ " only one taking an argument: second occurence" + option.getValue());
-			optionsTakingArguments.put(optName, takesArg);
-		}
-		optionClasses.put(optionsType, optionsClass);
-		return optionsClass;
-	}
-	
-	
 	
 	public void run(String[] args) {
-		if(treeRoot.subBranches.isEmpty())
+		if(treeRoot.subBranches.isEmpty() && treeRoot.entryPoint == null)
 			throw new IllegalStateException("No entry point registered");
 		
 		Map<String, String> options = new HashMap<>();
@@ -125,7 +65,10 @@ public class ArgParser {
 			
 			entryPointBranch = readArguments(errors, arguments, options, entryArguments);
 			
-			errors.assertNoErrors();
+			if(entryPointBranch == treeRoot && (treeRoot.entryPoint == null || isHelpPrint)) {
+				printRootHelp();
+				return;
+			}
 			
 			EntryPointFunction entry = entryPointBranch.entryPoint;
 			
@@ -153,6 +96,71 @@ public class ArgParser {
 		}
 	}
 	
+	private void populateEntryPoints() {
+		for(Method m : entryPointClass.getDeclaredMethods()) {
+			EntryPoint annotation = m.getAnnotation(EntryPoint.class);
+			if(annotation == null)
+				continue;
+			
+			String path = annotation.path();
+			
+			try {
+				Branch branch = getEntrylessBranch(path);
+				ArgParserHelper.validateEntryMethodParameters(m);
+				OptionsClass opt = getOrCreateOptionClass(m);
+				branch.entryPoint = EntryPointFunction.createEntryPointFunction(m, opt);
+			} catch (InvalidDeclarationError | NoSuchMethodException | SecurityException | IllegalArgumentException e) {
+				throw new InvalidDeclarationError("Cannot register branch '" + path + "' for method " + m, e);
+			}
+		}
+		if(treeRoot.subBranches.isEmpty() && treeRoot.entryPoint == null)
+			throw new InvalidDeclarationError("Class " + entryPointClass + " contains no entry points");
+	}
+	
+	private Branch getEntrylessBranch(String path) throws InvalidDeclarationError {
+		String[] parts = path.split(" ");
+		Branch current = treeRoot;
+		int pl = 0;
+		
+		if(!ArgParserHelper.isRootBranch(path)) {
+			for(String p : parts) {
+				if(!ArgParserHelper.canBeBranchName(p))
+					throw new InvalidDeclarationError("Name '" + p + "' cannot be used as a branch path");
+				
+				if(current.entryPoint != null)
+					throw new InvalidDeclarationError("Branch '" + path.substring(0, pl) + "' has a declared entry point, it cannot have sub-paths");
+				current = current.subBranches.computeIfAbsent(p, _p -> new Branch());
+				pl += p.length()+1;
+			}
+		}
+		
+		if(current.entryPoint != null)
+			throw new InvalidDeclarationError("Branch '" + path + "' already has an entry point");
+		if(!current.subBranches.isEmpty())
+			throw new InvalidDeclarationError("Branch '" + path + "' already has sub-paths, it cannot be an entry point");
+		return current;
+	}
+	
+	private OptionsClass getOrCreateOptionClass(Method method) throws InvalidDeclarationError {
+		if(!ArgParserHelper.doesMethodUseOptions(method))
+			return null;
+		Class<?> optionsType = method.getParameterTypes()[0];
+		OptionsClass optionsClass = optionClasses.get(optionsType);
+		if(optionsClass == null)
+			optionsClass = OptionsClass.createOptionsClass(optionsType);
+		for(Entry<String, Field> option : optionsClass.optionFields.entrySet()) {
+			String optName = option.getKey();
+			Boolean alreadyDefinedTakesArg = optionsTakingArguments.get(optName);
+			boolean takesArg = OptionsHelper.doesOptionTakeArgument(option.getValue().getType());
+			if(alreadyDefinedTakesArg != null && takesArg != alreadyDefinedTakesArg)
+				throw new InvalidDeclarationError("Option '" + optName + "' was defined in two option classes,"
+						+ " only one taking an argument: second occurence" + option.getValue());
+			optionsTakingArguments.put(optName, takesArg);
+		}
+		optionClasses.put(optionsType, optionsClass);
+		return optionsClass;
+	}
+	
 	private void printEntryPointHelp(EntryPointFunction entryPoint) {
 		System.out.println(getEntryUsage(entryPoint));
 		for(int i = 0; i < entryPoint.paramCount(); i++) {
@@ -178,6 +186,20 @@ public class ArgParser {
 					System.out.print("  - " + opt.desc());
 				System.out.println();
 			}
+		}
+	}
+	
+	private void printRootHelp() {
+		ProcessDoc doc = entryPointClass.getAnnotation(ProcessDoc.class);
+		if(doc == null) {
+			EntryPointFunction entry = treeRoot.entryPoint;
+			if(entry == null) {
+				System.out.println(getUnfinishedPathUsage(Collections.emptyList(), 0, treeRoot));
+			} else {
+				printEntryPointHelp(entry);
+			}
+		} else {
+			System.out.println(doc.doc());
 		}
 	}
 	
@@ -240,14 +262,12 @@ public class ArgParser {
 				ArgParser.class.getName(),
 				Method.class.getName(),
 				"jdk.internal.reflect.NativeMethodAccessorImpl",      // filter out inaccessible classes, may not have
-				"jdk.internal.reflect.DelegatingMethodAccessorImpl"); // effect depending on JDK implementation maybe ?
+				"jdk.internal.reflect.DelegatingMethodAccessorImpl"); // effect depending on JDK implementation
 		t.setStackTrace(ArrayOperator.filter(trace, el -> !classNames.contains(el.getClassName())));
 	}
 	
-	
-	
-	private Branch readArguments(ErrorWrapper errors, List<String> args, Map<String, String> outOptions,
-			List<String> outArguments) {
+	private Branch readArguments(ErrorWrapper errors, List<String> args,
+			Map<String, String> outOptions, List<String> outArguments) throws WrappedException {
 		
 		Branch currentBranch = treeRoot;
 		
@@ -274,6 +294,7 @@ public class ArgParser {
 			}
 		}
 		
+		errors.assertNoErrors();
 		return currentBranch;
 	}
 	
@@ -332,7 +353,9 @@ public class ArgParser {
 					usage += " (" + opt + ")";
 			}
 		}
-		usage += " " + entryMethod.getAnnotation(EntryPoint.class).path();
+		String entryPath = entryMethod.getAnnotation(EntryPoint.class).path();
+		if(!ArgParserHelper.isRootBranch(entryPath))
+			usage += " " + entryPath;
 		int i = 0;
 		for( ; i < entry.optionalParamCount(); i++)
 			usage += " <" + entry.getParamName(i) + ">";

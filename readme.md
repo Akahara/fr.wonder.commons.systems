@@ -1,6 +1,6 @@
 # fr.wonder.commons.systems
 
-This project is a library providing more complex functionnalities than [fr.wonder.commons](https://github.com/Akahara/fr.wonder.commons) but used less often. It contains both ready-to-use utilities (`ProcessArguments`, every `*Utils` class) and code to generate random input data (`DebugValues` and `FooBar`).
+This project is a library providing more complex functionnalities than [fr.wonder.commons](https://github.com/Akahara/fr.wonder.commons) but used less often. It contains both ready-to-use utilities (`ArgParser`, every `*Utils` class) and code to generate random input data (`DebugValues` and `FooBar`).
 
 ### Debug package
 

@@ -17,7 +17,7 @@ public class DebugValues {
 	}
 	
 	public static double[] randomDoubleArray(int length) {
-		return Stream.generate(Math::random).limit(length).mapToDouble(d->d).toArray();
+		return Stream.generate(Math::random).limit(length).mapToDouble(Double.class::cast).toArray();
 	}
 	
 	public static float[] randomFloatArray(int length) {
@@ -34,7 +34,7 @@ public class DebugValues {
 		int[] subdimensions = Arrays.copyOfRange(dimensions, 1, dimensions.length);
 		Object array = Array.newInstance(Double.TYPE, dimensions);
 		for(int i = 0; i < size; i++)
-			Array.set(array, i, randomMatrix(subdimensions)); 
+			Array.set(array, i, randomMatrix(subdimensions));
 		return array;
 	}
 	

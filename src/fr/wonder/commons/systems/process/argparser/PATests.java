@@ -2,9 +2,19 @@ package fr.wonder.commons.systems.process.argparser;
 
 import java.io.File;
 
+import fr.wonder.commons.systems.process.ProcessUtils;
 import fr.wonder.commons.systems.reflection.FooBar.EnumFoo;
 import fr.wonder.commons.utils.StringUtils;
 
+@ProcessDoc(doc = ""
+		+ "----------------------------------\n"
+		+ "Documentation example\n"
+		+ "\n"
+		+ "Will be printed if no arguments\n"
+		+ "are provided and the root is not\n"
+		+ "an entry point, or --help is used\n"
+		+ "on the root branch\n"
+		+ "----------------------------------\n")
 class PATests {
 
 	public static void main(String[] args) {
@@ -30,18 +40,19 @@ class PATests {
 		testRun("print -bdg valForG");
 		testRun("test2 array \"s t \\\\\"r\"");
 		testRun("abc \\\" def \"gh ij\" kl");
-		
+		testRun("--help");
 	}
 	
 	private static void testRun(String args) {
 		String[] argArray = StringUtils.splitWithQuotes(args, " ");
 		System.out.println("=== '" + args + "' === " + StringUtils.toObjectString(argArray) + " ===\n");
 		System.out.flush();
-		ArgParser.runHere("patest", argArray);
+		ArgParser.runHere(argArray);
 		System.err.flush();
 		System.out.flush();
 		System.out.println();
 		System.out.flush();
+		ProcessUtils.sleep(100);
 	}
 	
 	public static class Options {
