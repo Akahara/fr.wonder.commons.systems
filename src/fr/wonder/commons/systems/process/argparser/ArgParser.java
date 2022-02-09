@@ -163,29 +163,64 @@ public class ArgParser {
 	
 	private void printEntryPointHelp(EntryPointFunction entryPoint) {
 		System.out.println(getEntryUsage(entryPoint));
+		
+		int maxParamNameLength = 0;
+		List<String> parameterNames = new ArrayList<>();
+		
 		for(int i = 0; i < entryPoint.paramCount(); i++) {
 			Class<?> argConcreteType = entryPoint.getParamType(i);
 			String argName = entryPoint.getParamName(i);
 			String argType = argConcreteType.isEnum() ?
 					StringUtils.join("|", argConcreteType.getEnumConstants()) :
 					argConcreteType.getSimpleName();
-			String argDesc = entryPoint.getParamDesc(i);
-			if(!argDesc.isBlank())
-				argDesc = "  - " + argDesc.replaceAll("\n", "    ");
-			System.out.println("  " + argName + " (" + argType + ")" + argDesc);
+			String fullName = "  " + argName + " (" + argType + ")";
+			parameterNames.add(fullName);
+			if(maxParamNameLength < fullName.length())
+				maxParamNameLength = fullName.length();
 		}
-		if(entryPoint.options != null) {
-			for(Field optField : new HashSet<>(entryPoint.options.optionFields.values())) {
-				Option opt = optField.getAnnotation(Option.class);
-				System.out.print("  " + opt.name());
-				if(!opt.shortand().isBlank())
-					System.out.print(" (" + opt.shortand() + ")");
-				if(OptionsHelper.doesOptionTakeArgument(optField.getType()))
-					System.out.print(" <" + opt.valueName() + ">");
-				if(!opt.desc().isEmpty())
-					System.out.print("  - " + opt.desc());
-				System.out.println();
-			}
+		
+		if(maxParamNameLength > 35)
+			maxParamNameLength = 35;
+		
+		for(int i = 0; i < entryPoint.paramCount(); i++) {
+			String argName = parameterNames.get(i);
+			String argDesc = entryPoint.getParamDesc(i);
+			int padding = Math.max(0, maxParamNameLength - argName.length());
+			if(!argDesc.isBlank())
+				argDesc = " - " + argDesc.replaceAll("\n", " ".repeat(maxParamNameLength+3));
+			System.out.println(argName + " ".repeat(padding) + argDesc);
+		}
+		
+		if(entryPoint.options == null)
+			return;
+		
+		maxParamNameLength = 0;
+		parameterNames.clear();
+		
+		Set<Field> optionFields = new HashSet<>(entryPoint.options.optionFields.values());
+		for(Field optionField : optionFields) {
+			Option opt = optionField.getAnnotation(Option.class);
+			String fullName = "  " + opt.name();
+			if(!opt.shortand().isBlank())
+				fullName += " (" + opt.shortand() + ")";
+			if(OptionsHelper.doesOptionTakeArgument(optionField.getType()))
+				fullName += " <" + opt.valueName() + ">";
+			parameterNames.add(fullName);
+			if(maxParamNameLength < fullName.length())
+				maxParamNameLength = fullName.length();
+		}
+
+		if(maxParamNameLength > 35)
+			maxParamNameLength = 35;
+		
+		for(Field optionField : optionFields) {
+			Option opt = optionField.getAnnotation(Option.class);
+			String optDesc = opt.desc();
+			String optName = parameterNames.remove(0);
+			if(!optDesc.isBlank())
+				optDesc = " - " + optDesc.replaceAll("\n", " ".repeat(maxParamNameLength+3));
+			int padding = Math.max(0, maxParamNameLength - optName.length());
+			System.out.println(optName + " ".repeat(padding) + optDesc);
 		}
 	}
 	
@@ -353,7 +388,8 @@ public class ArgParser {
 					usage += " (" + opt + ")";
 			}
 		}
-		String entryPath = entryMethod.getAnnotation(EntryPoint.class).path();
+		EntryPoint annotation = entryMethod.getAnnotation(EntryPoint.class);
+		String entryPath = annotation.path();
 		if(!ArgParserHelper.isRootBranch(entryPath))
 			usage += " " + entryPath;
 		int i = 0;
@@ -361,6 +397,8 @@ public class ArgParser {
 			usage += " <" + entry.getParamName(i) + ">";
 		for( ; i < entry.paramCount(); i++)
 			usage += " [" + entry.getParamName(i) + "]";
+		if(!annotation.help().isBlank())
+			usage += "\n" + annotation.help();
 		return usage;
 	}
 	
