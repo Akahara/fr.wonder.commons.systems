@@ -41,8 +41,7 @@ class OptionsHelper {
 			try {
 				return ReflectUtils.getEnumConstant(argType, arg.toUpperCase());
 			} catch (IllegalArgumentException | NullPointerException e) {
-				throw new ArgumentError("Expected one of " + StringUtils.join("|", argType.getEnumConstants()) +
-						" for <" + argName + ">, got '" + arg + "'");
+				throw new ArgumentError("Expected one of " + StringUtils.join("|", argType.getEnumConstants()) + " for <" + argName + ">, got '" + arg + "'");
 			}
 		} else {
 			throw new UnreachableException("Invalid option type " + argType);

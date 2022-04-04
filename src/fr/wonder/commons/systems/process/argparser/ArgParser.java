@@ -336,7 +336,7 @@ public class ArgParser {
 		
 		// read combined notation -abc
 		if(!option.startsWith("--")) {
-			String[] chars = option.split("");
+			char[] chars = option.toCharArray();
 			for(int i = 1; i < chars.length-1; i++) {
 				String copt = "-" + chars[i];
 				Boolean takesArgument = optionsTakingArguments.get(option);
@@ -364,7 +364,8 @@ public class ArgParser {
 	
 	private String getUnfinishedPathUsage(List<String> args, int readCount, Branch currentBranch) {
 		return "Usage: " + getCurrentPathString(args, readCount) + " " 
-				+ StringUtils.join("|", currentBranch.subBranches.keySet()) + " ...\nUse '" + progName + " --help <cmd>' for help";
+				+ StringUtils.join("|", currentBranch.subBranches.keySet())
+				+ " ...\nUse '" + progName + " --help <cmd>' for help";
 	}
 	
 	private String getCurrentPathString(List<String> args, int readCount) {
@@ -399,5 +400,12 @@ public class ArgParser {
 			usage += "\n" + annotation.help();
 		return usage;
 	}
+	
+}
+
+class Branch {
+	
+	final Map<String, Branch> subBranches = new HashMap<>(0);
+	EntryPointFunction entryPoint = null;
 	
 }

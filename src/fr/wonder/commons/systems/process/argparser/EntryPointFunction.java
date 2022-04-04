@@ -95,8 +95,7 @@ final class EntryPointFunction {
 		return options == null ? 0 : 1;
 	}
 
-	public Object[] finishArgsArray(Object[] rawArguments,
-			Map<String, String> rawOptions, ErrorWrapper errors) throws WrappedException {
+	public Object[] finishArgsArray(Object[] rawArguments, Map<String, String> rawOptions, ErrorWrapper errors) throws WrappedException {
 		
 		for(int i = paramCount() - optionalParamCount(); i < paramCount(); i++) {
 			if(rawArguments[i] == null)
