@@ -187,7 +187,7 @@ public class ArgParser {
 			String argDesc = entryPoint.getParamDesc(i);
 			int padding = Math.max(0, maxParamNameLength - argName.length());
 			if(!argDesc.isBlank())
-				argDesc = " - " + argDesc.replaceAll("\n", " ".repeat(maxParamNameLength+3));
+				argDesc = " - " + argDesc.replaceAll("\n", "\n"+" ".repeat(maxParamNameLength+2));
 			System.out.println(argName + " ".repeat(padding) + argDesc);
 		}
 		
@@ -218,7 +218,7 @@ public class ArgParser {
 			String optDesc = opt.desc();
 			String optName = parameterNames.remove(0);
 			if(!optDesc.isBlank())
-				optDesc = " - " + optDesc.replaceAll("\n", " ".repeat(maxParamNameLength+3));
+				optDesc = " - " + optDesc.replaceAll("\n", "\n"+" ".repeat(maxParamNameLength+2));
 			int padding = Math.max(0, maxParamNameLength - optName.length());
 			System.out.println(optName + " ".repeat(padding) + optDesc);
 		}
@@ -226,15 +226,13 @@ public class ArgParser {
 	
 	private void printRootHelp() {
 		ProcessDoc doc = entryPointClass.getAnnotation(ProcessDoc.class);
-		if(doc == null) {
-			EntryPointFunction entry = treeRoot.entryPoint;
-			if(entry == null) {
-				System.out.println(getUnfinishedPathUsage(Collections.emptyList(), 0, treeRoot));
-			} else {
-				printEntryPointHelp(entry);
-			}
-		} else {
+		if(doc != null)
 			System.out.println(doc.doc());
+		EntryPointFunction entry = treeRoot.entryPoint;
+		if(entry == null) {
+			System.out.println(getUnfinishedPathUsage(Collections.emptyList(), 0, treeRoot));
+		} else {
+			printEntryPointHelp(entry);
 		}
 	}
 	
