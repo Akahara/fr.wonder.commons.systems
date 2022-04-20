@@ -10,6 +10,7 @@ class PATests2 {
 		testRun("3");
 		testRun("test2");
 		testRun("--help");
+		testRun(".5");
 	}
 	
 	private static void testRun(String args) {
@@ -50,7 +51,7 @@ class PATests2 {
 
 	@Argument(name = "i", desc = "i argument", defaultValue = "4")
 	@EntryPoint(path = ":root")
-	public static void a(Options opt, int i) {
+	public static void a(Options opt, float i) {
 		System.out.println("called a with " + i);
 		System.out.println(opt);
 	}

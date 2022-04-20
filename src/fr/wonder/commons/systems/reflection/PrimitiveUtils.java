@@ -223,9 +223,9 @@ public class PrimitiveUtils {
 		else if(clazz == Long.class)
 			return (long) o;
 		else if(clazz == Float.class)
-			return (long) (float) o;
+			return (float) o;
 		else if(clazz == Double.class)
-			return (long) (double) o;
+			return (double) o;
 		else if(clazz == Short.class)
 			return (short) o;
 		else if(clazz == Byte.class)
