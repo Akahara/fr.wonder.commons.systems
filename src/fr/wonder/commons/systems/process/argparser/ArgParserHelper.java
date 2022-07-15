@@ -17,9 +17,9 @@ public class ArgParserHelper {
 		Parameter[] params = method.getParameters();
 		
 		for(int i = 1; i < params.length; i++) {
-			if(!ArgParserHelper.canBeArgumentType(params[i].getType()))
-				throw new IllegalArgumentException("Argument " + params[i].getName() +
-						" has an invalid type " + params[i].getType().getName());
+			if(!canBeArgumentType(params[i].getType())) {
+				throw new IllegalArgumentException("Argument " + params[i].getName() + " has an invalid type " + params[i].getType().getName());
+			}
 		}
 	}
 

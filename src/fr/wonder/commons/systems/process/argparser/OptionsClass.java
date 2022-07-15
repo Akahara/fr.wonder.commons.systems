@@ -29,32 +29,28 @@ final class OptionsClass {
 		} catch (NoSuchMethodException | SecurityException e) {
 			throw new InvalidDeclarationError("Option class " + clazz.getName() + " does not declare an empty constructor", e);
 		}
+		
 		Map<String, Field> optionFields = new HashMap<>();
 		
 		for(Field f : clazz.getDeclaredFields()) {
 			Option opt = f.getAnnotation(Option.class);
-			if(opt == null)
-				continue;
+			if(opt == null) continue;
 			String name = opt.name();
 			String shortand = opt.shortand();
 			Class<?> type = f.getType();
+			
 			if(!ArgParserHelper.canBeOptionName(name))
-				throw new InvalidDeclarationError("Name " + name + " in option class " +
-						clazz.getName() + " cannot be an option on field " + f);
+				throw new InvalidDeclarationError("Name " + name + " in option class " + clazz.getName() + " cannot be an option on field " + f);
 			if(optionFields.put(name, f) != null)
-				throw new InvalidDeclarationError("Name " + name + " in class " +
-						clazz.getName() + " specified twice on field " + f);
+				throw new InvalidDeclarationError("Name " + name + " in class " + clazz.getName() + " specified twice on field " + f);
 			if(!shortand.isEmpty()) {
 				if(!ArgParserHelper.canBeOptionShortand(shortand))
-					throw new InvalidDeclarationError("Name " + shortand + " in option class " +
-							clazz.getName() + " cannot be a shortand on field " + f);
+					throw new InvalidDeclarationError("Name " + shortand + " in option class " + clazz.getName() + " cannot be a shortand on field " + f);
 				if(optionFields.put(shortand, f) != null)
-					throw new InvalidDeclarationError("Name " + shortand + " in option class " +
-							clazz.getName() + " specified twice");
+					throw new InvalidDeclarationError("Name " + shortand + " in option class " + clazz.getName() + " specified twice");
 			}
 			if(!ArgParserHelper.canBeArgumentType(type))
-				throw new InvalidDeclarationError("Option of field " + f + " in option class " +
-						clazz.getName() + " has invalid type " + type.getName());
+				throw new InvalidDeclarationError("Option of field " + f + " in option class " + clazz.getName() + " has invalid type " + type.getName());
 		}
 		return new OptionsClass(clazz, constructor, optionFields);
 	}
