@@ -1,4 +1,4 @@
-package fr.wonder.commons.systems.process.argparser;
+package fr.wonder.commons.systems.argparser;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +14,7 @@ import fr.wonder.commons.utils.StringUtils;
 
 class OptionsHelper {
 
-	static Object parseOptionValue(String arg, Class<?> argType, String argName) throws ArgumentError {
+	public static Object parseOptionValue(String arg, Class<?> argType, String argName) throws ArgumentError {
 		if(PrimitiveUtils.isPrimitiveType(argType)) {
 			if(PrimitiveUtils.isFloatingPoint(argType)) {
 				try {
@@ -48,15 +48,25 @@ class OptionsHelper {
 		}
 	}
 
-	static Object createOptionsInstance(Map<String, String> rawOptions, OptionsClass options, ErrorWrapper errors) {
+	public static Object createOptionsInstance(Map<String, String> rawOptions, ProcessOptions options, ErrorWrapper errors) {
 		Object instance = options.newInstance();
+		Map<Class<?>, Object> complexFields;
+		try {
+			complexFields = options.getAllOptionFields(instance);
+		} catch (IllegalAccessException e) {
+			throw new IllegalStateException("Could not initialize an option instance", e);
+		}
 		
 		for(Entry<String, String> optPair : rawOptions.entrySet()) {
-			Field optField = options.optionFields.get(optPair.getKey());
-			if(optField == null)
+			Field optField = options.getOptionFields().get(optPair.getKey());
+			if(optField == null) {
 				errors.add("Unknown option: " + optPair.getKey());
-			else
-				setOption(instance, optField, optPair.getKey(), optPair.getValue(), errors);
+				continue;
+			}
+			Object fieldInstance = complexFields.get(optField.getDeclaringClass());
+			if(fieldInstance == null)
+				throw new IllegalStateException("Could not find an instance of " + optField.getType() + " for option class '" + optField.getName() + "' in a " + instance.getClass().getSimpleName());
+			setOption(fieldInstance, optField, optPair.getKey(), optPair.getValue(), errors);
 		}
 		
 		return instance;
@@ -67,6 +77,7 @@ class OptionsHelper {
 			Class<?> optionType = optionField.getType();
 			
 			if(optionType == boolean.class) {
+				// special case: toggle the boolean, that's to allow fields that default to true
 				optionField.setBoolean(optionObj, !optionField.getBoolean(optionObj));
 				return;
 			}
@@ -92,5 +103,5 @@ class OptionsHelper {
 	public static boolean doesOptionTakeArgument(Class<?> type) {
 		return type != boolean.class;
 	}
-
+	
 }

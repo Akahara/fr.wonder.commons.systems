@@ -91,4 +91,8 @@ public class Manifest {
 		return entries.keySet();
 	}
 	
+	public Map<String, String> getEntries() {
+		return entries;
+	}
+	
 }

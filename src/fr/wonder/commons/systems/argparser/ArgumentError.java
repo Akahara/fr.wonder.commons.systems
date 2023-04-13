@@ -1,4 +1,4 @@
-package fr.wonder.commons.systems.process.argparser;
+package fr.wonder.commons.systems.argparser;
 
 public class ArgumentError extends Exception {
 

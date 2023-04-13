@@ -1,31 +1,34 @@
-package fr.wonder.commons.systems.process.argparser;
+package fr.wonder.commons.systems.argparser;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.Map;
+import java.util.Objects;
 
 import fr.wonder.commons.exceptions.ErrorWrapper;
 import fr.wonder.commons.exceptions.ErrorWrapper.WrappedException;
+import fr.wonder.commons.systems.argparser.annotations.Argument;
+import fr.wonder.commons.systems.argparser.annotations.Arguments;
 import fr.wonder.commons.utils.StringUtils;
 
-final class EntryPointFunction {
+class EntryPointFunction {
 	
-	final Method method;
-	final OptionsClass options;
+	private final Method method;
+	private final ProcessOptions options;
 	private final Object[] defaultArgumentValues;
 	private final Argument[] argumentsAnnotations;
 	private final int optionalArgsCount;
 	
-	private EntryPointFunction(Method method, OptionsClass options, Argument[] argumentsAnnotations,
+	private EntryPointFunction(Method method, ProcessOptions options, Argument[] argumentsAnnotations,
 			Object[] defaultValues, int optionalArgsCount) {
-		this.method = method;
-		this.options = options;
-		this.argumentsAnnotations = argumentsAnnotations;
-		this.defaultArgumentValues = defaultValues;
-		this.optionalArgsCount = optionalArgsCount;
+		this.method = Objects.requireNonNull(method);
+		this.options = Objects.requireNonNull(options);
+		this.argumentsAnnotations = Objects.requireNonNull(argumentsAnnotations);
+		this.defaultArgumentValues = Objects.requireNonNull(defaultValues);
+		this.optionalArgsCount = Objects.requireNonNull(optionalArgsCount);
 	}
 	
-	static EntryPointFunction createEntryPointFunction(Method method, OptionsClass options) {
+	public static EntryPointFunction createEntryPointFunction(Method method, ProcessOptions options) {
 		int optionsOffset = options == null ? 0 : 1;
 		
 		Object[] defaultValues = new Object[method.getParameterCount() - optionsOffset];
@@ -111,7 +114,16 @@ final class EntryPointFunction {
 			arguments[i+1] = rawArguments[i];
 		arguments[0] = OptionsHelper.createOptionsInstance(rawOptions, options, errors);
 		errors.assertNoErrors();
+		
 		return arguments;
+	}
+	
+	public Method getMethod() {
+		return method;
+	}
+	
+	public ProcessOptions getOptions() {
+		return options;
 	}
 
 }

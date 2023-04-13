@@ -1,6 +1,6 @@
-package fr.wonder.commons.systems.process.argparser;
+package fr.wonder.commons.systems.argparser;
 
-public class InvalidDeclarationError extends Error {
+public class InvalidDeclarationError extends Exception {
 
 	private static final long serialVersionUID = -4865153623430088860L;
 

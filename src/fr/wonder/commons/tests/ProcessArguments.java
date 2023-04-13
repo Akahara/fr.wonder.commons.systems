@@ -1,7 +1,13 @@
-package fr.wonder.commons.systems.process.argparser;
+package fr.wonder.commons.tests;
 
 import java.io.File;
 
+import fr.wonder.commons.systems.argparser.ArgParser;
+import fr.wonder.commons.systems.argparser.annotations.Argument;
+import fr.wonder.commons.systems.argparser.annotations.EntryPoint;
+import fr.wonder.commons.systems.argparser.annotations.Option;
+import fr.wonder.commons.systems.argparser.annotations.OptionClass;
+import fr.wonder.commons.systems.argparser.annotations.ProcessDoc;
 import fr.wonder.commons.systems.process.ProcessUtils;
 import fr.wonder.commons.systems.reflection.FooBar.EnumFoo;
 import fr.wonder.commons.utils.StringUtils;
@@ -15,7 +21,7 @@ import fr.wonder.commons.utils.StringUtils;
 		+ "an entry point, or --help is used\n"
 		+ "on the root branch\n"
 		+ "----------------------------------\n")
-class PATests {
+public class ProcessArguments {
 
 	public static void main(String[] args) {
 		testRun("test2 enum E1 e2");
@@ -52,20 +58,21 @@ class PATests {
 		System.out.flush();
 		System.out.println();
 		System.out.flush();
-		ProcessUtils.sleep(100);
+		ProcessUtils.sleep(100); // flushing does not work well in my IDE, waiting makes things a bit better
 	}
 	
+	@OptionClass
 	public static class Options {
 		
-		@Option(name = "--abc", shortand = "-a", desc = "The #val option", valueName = "val")
+		@Option(name = "--abc", shorthand = "-a", desc = "The #val option", valueName = "val")
 		public int val;
-		@Option(name = "--def", shortand = "-g")
+		@Option(name = "--def", shorthand = "-g")
 		public String val2;
-		@Option(name = "--bool", shortand = "-b")
+		@Option(name = "--bool", shorthand = "-b")
 		public boolean b;
-		@Option(name = "--bool2", shortand = "-d")
+		@Option(name = "--bool2", shorthand = "-d")
 		public boolean d;
-		@Option(name = "--bool3", shortand = "-q")
+		@Option(name = "--bool3", shorthand = "-q")
 		public boolean q = true;
 		@Option(name = "--opt", desc = "Enum")
 		public EnumFoo val4;
